@@ -35,8 +35,14 @@ struct RootView: View {
             if model.state == .idle { await model.refresh() }
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active, model.dataSource == .healthKit, !model.isBusy,
-                  let last = model.lastUpdated, Date.now.timeIntervalSince(last) > 15 * 60 else { return }
+            guard phase == .active, model.state != .idle, !model.isBusy else { return }
+            // Imported data is cheap to reload and may have been updated by the shortcut.
+            if model.dataSource == .healthKit,
+               let last = model.lastUpdated, Date.now.timeIntervalSince(last) < 15 * 60 { return }
+            Task { await model.refresh() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .pulseDataDidChange)) { _ in
+            guard !model.isBusy else { return }
             Task { await model.refresh() }
         }
         .fileImporter(isPresented: $model.showImporter, allowedContentTypes: [.zip, .xml]) { result in

@@ -51,11 +51,14 @@ struct SettingsView: View {
                     switch model.dataSource {
                     case .healthKit:
                         LabeledContent("Quelle", value: "Apple Health (live)")
-                    case .export(let date):
-                        LabeledContent("Quelle", value: "Health-Export")
-                        LabeledContent("Importiert", value: date.formatted(date: .abbreviated, time: .shortened))
+                    case .imported(let date):
+                        LabeledContent("Quelle", value: "Export / Kurzbefehl")
+                        LabeledContent("Zuletzt übernommen", value: date.formatted(date: .abbreviated, time: .shortened))
                     case nil:
                         LabeledContent("Quelle", value: "Keine Daten")
+                    }
+                    NavigationLink("Automatisch synchronisieren (Kurzbefehl)") {
+                        ShortcutGuideView()
                     }
                     Button("Health-Export importieren") {
                         dismiss()

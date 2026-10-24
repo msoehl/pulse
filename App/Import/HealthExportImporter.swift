@@ -12,6 +12,8 @@ struct ImportedHealthData: Codable {
 }
 
 enum HealthExportImporter {
+    static let historyDays = 120
+
     /// Reads `export.zip` (or an already unpacked `export.xml`). Runs for a while on big exports, so call it off the main actor.
     static func run(url: URL, days: Int, profile: UserProfile, progress: @escaping (Int) -> Void) throws -> ImportedHealthData {
         let accessing = url.startAccessingSecurityScopedResource()

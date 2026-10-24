@@ -18,7 +18,9 @@ Mit einer kostenlosen Apple-ID entfernt das Signieren beim Sideloading die Healt
 
 1. Health-App › Profilbild › „Alle Gesundheitsdaten exportieren“.
 2. Im Teilen-Menü „Pulse“ wählen, oder „In Dateien sichern“ und in Pulse über „Export-Datei wählen“ öffnen.
-3. Pulse liest die letzten 120 Tage und speichert das Ergebnis auf dem Gerät. Für neue Daten den Export wiederholen.
+3. Pulse liest die letzten 120 Tage und speichert das Ergebnis auf dem Gerät.
+
+Laufend aktuell hält es der Kurzbefehl **Pulse Sync**: Die Kurzbefehle-App darf Apple Health lesen, sammelt die Werte der letzten 4 Tage und übergibt sie über die Pulse-Aktion „Health-Daten an Pulse übergeben“. Eine Automation („Pulse wird geöffnet“) startet ihn automatisch. Anleitung in der App unter Einstellungen › Automatisch synchronisieren.
 
 Mit bezahltem Developer-Account (HealthKit-Berechtigung bleibt erhalten) liest Pulse automatisch live aus Apple Health.
 

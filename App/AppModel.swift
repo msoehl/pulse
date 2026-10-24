@@ -11,10 +11,11 @@ final class AppModel {
 
     enum DataSource: Equatable {
         case healthKit
-        case export(Date)
+        /// Health export and/or "Pulse Sync" shortcut, last updated at the given date.
+        case imported(Date)
     }
 
-    static let historyDays = 120
+    static let historyDays = HealthExportImporter.historyDays
 
     var state: LoadState = .idle
     var reports: [DayReport] = []
@@ -24,7 +25,7 @@ final class AppModel {
     var dataSource: DataSource?
     var showImporter = false
     var profile: UserProfile {
-        didSet { Self.saveProfile(profile) }
+        didSet { ProfileStore.save(profile) }
     }
 
     private let calendar = Calendar.current
@@ -34,7 +35,7 @@ final class AppModel {
 
     init() {
         selectedDate = Calendar.current.startOfDay(for: .now)
-        profile = Self.loadProfile()
+        profile = ProfileStore.load()
     }
 
     /// Uses HealthKit when the app was signed with the HealthKit entitlement,
@@ -100,7 +101,8 @@ final class AppModel {
     }
 
     private func showImportedData() {
-        if imported == nil { imported = HealthExportImporter.load() }
+        // Always read from disk: the shortcut may have written new data in the meantime.
+        imported = HealthExportImporter.load()
         if let imported {
             apply(imported)
         } else {
@@ -118,7 +120,7 @@ final class AppModel {
 
         reports = HealthAnalyzer.analyze(days: data.days, profile: profile, calendar: calendar)
         workouts = data.workouts.map(WorkoutSummary.init(exported:)).sorted { $0.start > $1.start }
-        dataSource = .export(data.importedAt)
+        dataSource = .imported(data.importedAt)
         lastUpdated = data.importedAt
         selectLatestIfNeeded()
         state = .loaded
@@ -162,19 +164,4 @@ final class AppModel {
         workouts.filter { calendar.isDate($0.start, inSameDayAs: date) }
     }
 
-    // MARK: - Persistence
-
-    private static let profileKey = "userProfile"
-
-    private static func loadProfile() -> UserProfile {
-        guard let data = UserDefaults.standard.data(forKey: profileKey),
-              let profile = try? JSONDecoder().decode(UserProfile.self, from: data) else { return UserProfile() }
-        return profile
-    }
-
-    private static func saveProfile(_ profile: UserProfile) {
-        if let data = try? JSONEncoder().encode(profile) {
-            UserDefaults.standard.set(data, forKey: profileKey)
-        }
-    }
 }

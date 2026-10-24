@@ -327,7 +327,14 @@ struct ImportCard: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            Text("Ausgewertet werden die letzten \(AppModel.historyDays) Tage. Für neue Daten den Export wiederholen.")
+            NavigationLink {
+                ShortcutGuideView()
+            } label: {
+                Label("Automatisch per Kurzbefehl synchronisieren", systemImage: "arrow.triangle.2.circlepath")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            Text("Ausgewertet werden die letzten \(AppModel.historyDays) Tage. Der Export liefert die Historie, der Kurzbefehl hält die letzten Tage aktuell.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
