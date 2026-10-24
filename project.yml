@@ -1,0 +1,43 @@
+name: Pulse
+options:
+  bundleIdPrefix: de.soehl
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  HealthCore:
+    path: Packages/HealthCore
+
+targets:
+  Pulse:
+    type: application
+    platform: iOS
+    sources:
+      - App
+    dependencies:
+      - package: HealthCore
+    entitlements:
+      path: App/Pulse.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Pulse
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        NSHealthShareUsageDescription: Pulse liest deine Apple-Health-Daten (Herzfrequenz, HRV, Schlaf, Workouts), um Recovery, Belastung und Schlaf auszuwerten.
+        NSHealthUpdateUsageDescription: Pulse schreibt keine Daten in Apple Health.
+        UILaunchScreen: {}
+        UIRequiredDeviceCapabilities: [healthkit]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIUserInterfaceStyle: Dark
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.soehl.pulse
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+    scheme: {}
