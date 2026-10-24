@@ -115,11 +115,12 @@ final class RecoveryTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_700_000_000)
 
     private func history(count: Int) -> [DayMetrics] {
-        (0..<count).map { i in
-            DayMetrics(date: t0.addingTimeInterval(Double(i) * 86_400),
-                       hrv: 60 + Double(i % 5) - 2,
-                       restingHR: 52 + Double(i % 3) - 1,
-                       respiratoryRate: 14 + Double(i % 2) * 0.4)
+        (0..<count).map { (i: Int) -> DayMetrics in
+            let date = t0.addingTimeInterval(Double(i) * 86_400)
+            let hrv: Double = 58 + Double(i % 5)
+            let restingHR: Double = 51 + Double(i % 3)
+            let respiratoryRate: Double = 14 + 0.4 * Double(i % 2)
+            return DayMetrics(date: date, hrv: hrv, restingHR: restingHR, respiratoryRate: respiratoryRate)
         }
     }
 
@@ -153,7 +154,10 @@ final class RecoveryTests: XCTestCase {
 final class TrendTests: XCTestCase {
     func testRisingSeriesTrendsUp() {
         let t0 = Date(timeIntervalSince1970: 1_700_000_000)
-        let points = (0..<60).map { DatedValue(date: t0.addingTimeInterval(Double($0) * 86_400), value: 40 + Double($0) * 0.5) }
+        let points = (0..<60).map { (i: Int) -> DatedValue in
+            let value: Double = 40 + 0.5 * Double(i)
+            return DatedValue(date: t0.addingTimeInterval(Double(i) * 86_400), value: value)
+        }
         let trend = TrendEngine.trend(points, asOf: points.last!.date)
         XCTAssertEqual(trend?.direction, .up)
         XCTAssertEqual(trend?.slopePerWeek ?? 0, 3.5, accuracy: 0.01)
