@@ -47,6 +47,30 @@ struct SettingsView: View {
                     Text("Schlaf")
                 }
 
+                Section {
+                    switch model.dataSource {
+                    case .healthKit:
+                        LabeledContent("Quelle", value: "Apple Health (live)")
+                    case .export(let date):
+                        LabeledContent("Quelle", value: "Health-Export")
+                        LabeledContent("Importiert", value: date.formatted(date: .abbreviated, time: .shortened))
+                    case nil:
+                        LabeledContent("Quelle", value: "Keine Daten")
+                    }
+                    Button("Health-Export importieren") {
+                        dismiss()
+                        // The file picker cannot open while this sheet is still being dismissed.
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(600))
+                            model.showImporter = true
+                        }
+                    }
+                } header: {
+                    Text("Daten")
+                } footer: {
+                    Text("Beim Import werden Belastungswerte mit dem aktuellen Profil berechnet. Nach Änderungen an Max. HF oder Geschlecht den Export neu importieren.")
+                }
+
                 Section("So wird gerechnet") {
                     explanation("Recovery", "HRV (45 %), Ruhepuls (25 %), Schlaf (20 %) und Atemfrequenz (10 %) im Vergleich zu deiner 30-Tage-Baseline. Grün ≥ 67 %, Gelb ≥ 34 %.")
                     explanation("Belastung", "Banister-TRIMP aus allen Herzfrequenz-Messungen des Tages, logarithmisch auf 0–21 skaliert.")
@@ -55,9 +79,11 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Button("Alle Werte neu berechnen") {
-                        Task { await model.reloadFromScratch() }
-                        dismiss()
+                    if model.dataSource == .healthKit {
+                        Button("Alle Werte neu berechnen") {
+                            Task { await model.reloadFromScratch() }
+                            dismiss()
+                        }
                     }
                     if let updated = model.lastUpdated {
                         LabeledContent("Zuletzt aktualisiert", value: updated.formatted(date: .abbreviated, time: .shortened))
@@ -98,9 +124,11 @@ struct SettingsView: View {
         let changed = profile != model.profile
         model.profile = profile
         dismiss()
-        if changed {
+        if changed && model.dataSource == .healthKit {
             // Strain depends on max HR and sex, so cached TRIMP values must be rebuilt.
             Task { await model.reloadFromScratch() }
+        } else if changed {
+            model.reapplyImport()
         }
     }
 }

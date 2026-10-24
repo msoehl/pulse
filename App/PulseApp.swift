@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 @main
 struct PulseApp: App {
@@ -19,6 +20,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        @Bindable var model = model
         TabView {
             TodayView()
                 .tabItem { Label("Heute", systemImage: "heart.text.square") }
@@ -33,9 +35,17 @@ struct RootView: View {
             if model.state == .idle { await model.refresh() }
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active, model.state != .loading,
+            guard phase == .active, model.dataSource == .healthKit, !model.isBusy,
                   let last = model.lastUpdated, Date.now.timeIntervalSince(last) > 15 * 60 else { return }
             Task { await model.refresh() }
+        }
+        .fileImporter(isPresented: $model.showImporter, allowedContentTypes: [.zip, .xml]) { result in
+            if case .success(let url) = result {
+                Task { await model.importExport(from: url) }
+            }
+        }
+        .onOpenURL { url in
+            Task { await model.importExport(from: url) }
         }
     }
 }

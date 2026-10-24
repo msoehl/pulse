@@ -257,7 +257,7 @@ struct Screen<Content: View>: View {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                 }
                 ToolbarItem(placement: .topBarLeading) {
-                    if model.state == .loading { ProgressView() }
+                    if model.isBusy { ProgressView() }
                 }
             }
             .refreshable { await model.refresh() }
@@ -270,16 +270,66 @@ struct Screen<Content: View>: View {
         switch model.state {
         case .idle, .loading:
             ProgressView("Lese Apple-Health-Daten …").padding(.top, 80)
+        case .importing(let count):
+            ImportProgress(count: count).padding(.top, 60)
+        case .needsImport:
+            ImportCard()
         case .failed(let message):
             Card(title: "Fehler") {
                 Text(message)
                 Button("Erneut versuchen") { Task { await model.refresh() } }
+                Button("Health-Export importieren") { model.showImporter = true }
             }
         case .loaded:
             Card {
-                Text("Keine Daten für diesen Tag. Prüfe unter Einstellungen › Health › Datenzugriff, ob Pulse Lesezugriff hat.")
+                Text("Keine Daten für diesen Tag.")
                     .foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+struct ImportProgress: View {
+    let count: Int
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            Text("Importiere Health-Export …").font(.headline)
+            Text(count > 0 ? "\(count.formatted()) Einträge gelesen" : "Entpacke Datei …")
+                .font(.footnote.monospacedDigit())
+                .foregroundStyle(.secondary)
+            Text("App bitte geöffnet lassen.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct ImportCard: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        Card(title: "Apple-Health-Daten importieren") {
+            Text("Ohne Entwickler-Konto darf Pulse nicht direkt auf Apple Health zugreifen. Importiere stattdessen deinen Health-Export:")
+                .font(.subheadline)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("1. Health-App öffnen › Profilbild oben rechts")
+                Text("2. „Alle Gesundheitsdaten exportieren“ › Exportieren")
+                Text("3. Im Teilen-Menü „Pulse“ wählen – oder „In Dateien sichern“ und hier auswählen")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            Button {
+                model.showImporter = true
+            } label: {
+                Label("Export-Datei wählen", systemImage: "square.and.arrow.down")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            Text("Ausgewertet werden die letzten \(AppModel.historyDays) Tage. Für neue Daten den Export wiederholen.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }

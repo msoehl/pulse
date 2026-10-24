@@ -8,6 +8,9 @@ options:
 packages:
   HealthCore:
     path: Packages/HealthCore
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation
+    exactVersion: 0.9.19
 
 targets:
   Pulse:
@@ -17,6 +20,7 @@ targets:
       - App
     dependencies:
       - package: HealthCore
+      - package: ZIPFoundation
     entitlements:
       path: App/Pulse.entitlements
       properties:
@@ -31,6 +35,12 @@ targets:
         NSHealthShareUsageDescription: Pulse liest deine Apple-Health-Daten (Herzfrequenz, HRV, Schlaf, Workouts), um Recovery, Belastung und Schlaf auszuwerten.
         NSHealthUpdateUsageDescription: Pulse schreibt keine Daten in Apple Health.
         UILaunchScreen: {}
+        # Lets Pulse appear in the share sheet of the Health export.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Apple Health Export
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.zip-archive, public.xml]
+        LSSupportsOpeningDocumentsInPlace: false
         UIRequiredDeviceCapabilities: [healthkit]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIUserInterfaceStyle: Dark

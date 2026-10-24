@@ -102,14 +102,13 @@ final class HealthKitService {
         let massByDay = await mass
         let stepsByDay = await steps
         let energyByDay = await energy
-        let hrv = await hrvSamples
+        let ms = HKUnit.secondUnit(with: .milli)
+        let hrv = await hrvSamples.map { DatedValue(date: $0.startDate, value: $0.quantity.doubleValue(for: ms)) }
         let segments = await sleepSamples
 
-        // A night belongs to the day it ends on; anything ending after 15:00 counts towards the next day.
         var segmentsByDay: [Date: [SleepSegment]] = [:]
         for segment in segments {
-            let day = calendar.startOfDay(for: segment.end.addingTimeInterval(9 * 3600))
-            segmentsByDay[day, default: []].append(segment)
+            segmentsByDay[DayAssembly.nightDay(forEnd: segment.end, calendar: calendar), default: []].append(segment)
         }
 
         let fallbackRHR = Stats.median(Array(rhrByDay.values)) ?? 60
@@ -130,7 +129,7 @@ final class HealthKitService {
             metrics.steps = stepsByDay[day]
             metrics.activeEnergy = energyByDay[day]
             metrics.sleep = segmentsByDay[day].flatMap(SleepAnalyzer.mainNight(from:))
-            metrics.hrv = overnightHRV(hrv, night: metrics.sleep, dayStart: day, dayEnd: next)
+            metrics.hrv = DayAssembly.overnightMean(hrv, night: metrics.sleep, dayStart: day, dayEnd: next)
 
             let key = Self.dayKeyFormatter.string(from: day)
             let isToday = day == today
@@ -233,17 +232,6 @@ final class HealthKitService {
             }
             return SleepSegment(start: sample.startDate, end: sample.endDate, stage: stage)
         }
-    }
-
-    /// Mean HRV during the main sleep, falling back to all readings of the day.
-    private func overnightHRV(_ samples: [HKQuantitySample], night: SleepNight?, dayStart: Date, dayEnd: Date) -> Double? {
-        let ms = HKUnit.secondUnit(with: .milli)
-        if let start = night?.start, let end = night?.end {
-            let values = samples.filter { $0.startDate >= start && $0.startDate <= end }.map { $0.quantity.doubleValue(for: ms) }
-            if let mean = Stats.mean(values) { return mean }
-        }
-        let values = samples.filter { $0.startDate >= dayStart && $0.startDate < dayEnd }.map { $0.quantity.doubleValue(for: ms) }
-        return Stats.mean(values)
     }
 
     private static func describe(_ type: HKWorkoutActivityType) -> (String, String) {

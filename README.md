@@ -12,6 +12,16 @@ Grundlage sind die Daten, die Apple Watch und iPhone ohnehin in Apple Health sch
 | **Belastung** | Strain aus Herzfrequenz (Banister-TRIMP), Zeit in HF-Zonen, Workouts, akute/chronische Trainingslast + ACWR, 14-Tage-Verlauf |
 | **Trends** | 11 Metriken (HRV, Ruhepuls, VO₂max, Atemfrequenz, SpO₂, Hauttemperatur, Gewicht, Schritte, …) über 14–120 Tage mit 7-Tage-Schnitt, Baseline-Band, Steigung und Korrelationen zur Recovery |
 
+## Datenquelle
+
+Mit einer kostenlosen Apple-ID entfernt das Signieren beim Sideloading die HealthKit-Berechtigung. Pulse liest dann den **Health-Export**:
+
+1. Health-App › Profilbild › „Alle Gesundheitsdaten exportieren“.
+2. Im Teilen-Menü „Pulse“ wählen, oder „In Dateien sichern“ und in Pulse über „Export-Datei wählen“ öffnen.
+3. Pulse liest die letzten 120 Tage und speichert das Ergebnis auf dem Gerät. Für neue Daten den Export wiederholen.
+
+Mit bezahltem Developer-Account (HealthKit-Berechtigung bleibt erhalten) liest Pulse automatisch live aus Apple Health.
+
 ## Aufbau
 
 ```
@@ -48,7 +58,7 @@ Mit **Sideloadly** (Windows):
 
 Mit kostenloser Apple-ID läuft die Signatur nach **7 Tagen** ab. Dann erneut signieren (Sideloadly-Autorefresh oder SideStore/AltStore).
 
-Falls die App nach dem Signieren keinen Health-Dialog zeigt oder keine Daten bekommt, hat das Signier-Tool das HealthKit-Entitlement nicht übernommen. Dann SideStore/AltStore probieren oder mit einem bezahlten Developer-Account signieren.
+Mit kostenloser Apple-ID fehlt danach die HealthKit-Berechtigung – das ist erwartet, Pulse nutzt dann den Health-Export (siehe oben).
 
 ## Tests lokal
 

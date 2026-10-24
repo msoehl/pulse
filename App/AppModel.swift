@@ -6,7 +6,12 @@ import HealthCore
 @Observable
 final class AppModel {
     enum LoadState: Equatable {
-        case idle, loading, loaded, failed(String)
+        case idle, loading, importing(Int), needsImport, loaded, failed(String)
+    }
+
+    enum DataSource: Equatable {
+        case healthKit
+        case export(Date)
     }
 
     static let historyDays = 120
@@ -16,6 +21,8 @@ final class AppModel {
     var workouts: [WorkoutSummary] = []
     var selectedDate: Date
     var lastUpdated: Date?
+    var dataSource: DataSource?
+    var showImporter = false
     var profile: UserProfile {
         didSet { Self.saveProfile(profile) }
     }
@@ -23,18 +30,21 @@ final class AppModel {
     private let calendar = Calendar.current
     private let service = HealthKitService()
     private let cache = TrimpCache()
+    private var imported: ImportedHealthData?
 
     init() {
         selectedDate = Calendar.current.startOfDay(for: .now)
         profile = Self.loadProfile()
     }
 
+    /// Uses HealthKit when the app was signed with the HealthKit entitlement,
+    /// otherwise the last imported Health export.
     func refresh() async {
         state = .loading
         do {
             try await service.requestAuthorization()
         } catch {
-            state = .failed(error.localizedDescription)
+            showImportedData()
             return
         }
 
@@ -50,9 +60,9 @@ final class AppModel {
             workouts = await service.workouts(since: since)
         }
 
-        let today = calendar.startOfDay(for: .now)
-        if !reports.contains(where: { $0.id == selectedDate }) { selectedDate = today }
+        dataSource = .healthKit
         lastUpdated = .now
+        selectLatestIfNeeded()
         state = .loaded
     }
 
@@ -60,6 +70,71 @@ final class AppModel {
     func reloadFromScratch() async {
         cache.clear()
         await refresh()
+    }
+
+    func importExport(from url: URL) async {
+        state = .importing(0)
+        let days = Self.historyDays
+        let profile = self.profile
+        do {
+            let data = try await Task.detached(priority: .userInitiated) {
+                try HealthExportImporter.run(url: url, days: days, profile: profile) { count in
+                    Task { @MainActor [weak self] in self?.state = .importing(count) }
+                }
+            }.value
+            HealthExportImporter.save(data)
+            imported = data
+            apply(data)
+        } catch {
+            state = .failed(error.localizedDescription)
+        }
+        // Files shared into the app land in Documents/Inbox; they are no longer needed.
+        if url.path.contains("/Inbox/") {
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    /// Re-runs the analysis on the stored import, e.g. after the sleep need changed.
+    func reapplyImport() {
+        if let imported { apply(imported) }
+    }
+
+    private func showImportedData() {
+        if imported == nil { imported = HealthExportImporter.load() }
+        if let imported {
+            apply(imported)
+        } else {
+            state = .needsImport
+        }
+    }
+
+    private func apply(_ data: ImportedHealthData) {
+        var updated = profile
+        if updated.age == nil, let birth = data.dateOfBirth {
+            updated.age = calendar.dateComponents([.year], from: birth, to: .now).year
+        }
+        if updated.sex == .unknown { updated.sex = data.sex }
+        if updated != profile { profile = updated }
+
+        reports = HealthAnalyzer.analyze(days: data.days, profile: profile, calendar: calendar)
+        workouts = data.workouts.map(WorkoutSummary.init(exported:)).sorted { $0.start > $1.start }
+        dataSource = .export(data.importedAt)
+        lastUpdated = data.importedAt
+        selectLatestIfNeeded()
+        state = .loaded
+    }
+
+    private func selectLatestIfNeeded() {
+        guard !reports.contains(where: { $0.id == selectedDate }) else { return }
+        let today = calendar.startOfDay(for: .now)
+        selectedDate = reports.contains(where: { $0.id == today }) ? today : (reports.last?.id ?? today)
+    }
+
+    var isBusy: Bool {
+        switch state {
+        case .loading, .importing: return true
+        default: return false
+        }
     }
 
     // MARK: - Selection
