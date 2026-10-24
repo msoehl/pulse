@@ -48,6 +48,19 @@ Alle Konstanten stehen in `Packages/HealthCore/Sources/HealthCore/`.
 2. Der Workflow **Build IPA** läuft bei jedem Push auf `main` (oder manuell unter *Actions › Build IPA › Run workflow*).
 3. Unter dem Workflow-Lauf das Artefakt **Pulse-ipa** herunterladen und entpacken → `Pulse.ipa`.
 
+## Installieren und aktualisieren ohne PC (SideStore)
+
+Jeder Push auf `main` erzeugt ein GitHub-Release mit `Pulse.ipa` und einer SideStore-Quelle:
+
+```
+https://github.com/msoehl/pulse/releases/latest/download/source.json
+```
+
+1. SideStore einmalig nach https://docs.sidestore.io einrichten (dafür einmal ein PC für die Pairing-Datei).
+2. In SideStore › *Sources* › **+** die URL oben hinzufügen und Pulse installieren.
+3. Neue Versionen erscheinen in SideStore unter *Updates*.
+4. Die 7-Tage-Signatur erneuert SideStore auf dem iPhone selbst; automatisch per Kurzbefehle-Automation „SideStore › Alle Apps aktualisieren“ (z. B. täglich).
+
 ## Installieren (Sideload)
 
 Mit **Sideloadly** (Windows):

@@ -6,9 +6,16 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-15
+    env:
+      VERSION: 0.1.${{ github.run_number }}
+      BUILD: ${{ github.run_number }}
+      TAG: build-${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +37,8 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
@@ -54,3 +63,21 @@ jobs:
           name: Pulse-ipa
           path: Pulse.ipa
           retention-days: 30
+
+      # Each push to main becomes a release; SideStore reads
+      # https://github.com/<repo>/releases/latest/download/source.json
+      - name: Create SideStore source
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: python3 scripts/make_source.py Pulse.ipa > source.json
+
+      - name: Publish release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Pulse ${{ env.VERSION }}
+          body: Automatischer Build von ${{ github.sha }}.
+          make_latest: true
+          files: |
+            Pulse.ipa
+            source.json
